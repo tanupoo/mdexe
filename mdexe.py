@@ -53,6 +53,8 @@ ap.add_argument("-f", action="store", dest="input_file",
                 help="specify a filename containing code snipet.")
 ap.add_argument("-s", action="store", dest="script_id",
                 help="specify the script identifier, separated by comma.")
+ap.add_argument("-A", action="store_true", dest="execute_all",
+                help="specify to execute all snipets.")
 ap.add_argument("-M", action="store_true", dest="show_markdown",
                 help="show output in markdown.")
 ap.add_argument("-S", action="store_true", dest="show_script",
@@ -60,6 +62,11 @@ ap.add_argument("-S", action="store_true", dest="show_script",
 opt = ap.parse_args()
 
 #
+if not (opt.execute_all or opt.script_id):
+    print("ERROR: either -s or -A is required.")
+    ap.show_help()
+    exit(0)
+
 if opt.script_id is None:
     script_id_list = []
 else:
