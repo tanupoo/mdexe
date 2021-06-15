@@ -49,7 +49,7 @@ def canon_lang(keyword):
 ap = ArgumentParser(
         description="execute code picked from markdown by key.",
         formatter_class=ArgumentDefaultsHelpFormatter)
-ap.add_argument("input_file", nargs="*",
+ap.add_argument("input_file", nargs="?",
                 help="specify a filename containing code snipet. "
                     "'-' means stdin.")
 ap.add_argument("-s", action="store", dest="script_id",
