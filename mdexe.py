@@ -43,6 +43,9 @@ def canon_lang(keyword):
     else:
         raise ValueError(f"INFO: ignore ```{keyword}, it doesn't registered.")
 
+#
+# main
+#
 ap = ArgumentParser(
         description="execute code picked from markdown by key.",
         formatter_class=ArgumentDefaultsHelpFormatter)
@@ -57,10 +60,12 @@ ap.add_argument("-M", action="store_true", dest="show_markdown",
                 help="show output in markdown.")
 ap.add_argument("-S", action="store_true", dest="show_script",
                 help="show original script.")
+ap.add_argument("-l", action="store_true", dest="show_snipets",
+                help="print a list of snipets in the file.")
 opt = ap.parse_args()
 
 #
-if not (opt.execute_all or opt.script_id):
+if (not opt.show_snipets) and not (opt.execute_all or opt.script_id):
     print("ERROR: either -s or -A is required to specify a snipet.")
     ap.print_help()
     exit(0)
@@ -76,6 +81,7 @@ if opt.input_file:
 else:
     fd = sys.stdin
 
+# find snipets.
 in_snipet = False
 script_id = 0
 for line in fd:
@@ -92,8 +98,12 @@ for line in fd:
     r = re_end.match(line)
     if r and in_snipet is True:
         in_snipet = False
-        if len(script_id_list) == 0 or script_id in script_id_list:
-            exec_cmd(lang, snipet)
+        if not opt.show_snipets:
+            if len(script_id_list) == 0 or script_id in script_id_list:
+                exec_cmd(lang, snipet)
+        else:
+            print(f"## SNIPET_ID {script_id}: {lang}")
+            print("".join(snipet))
         snipet = []
         continue
     if in_snipet:
