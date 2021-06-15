@@ -46,11 +46,9 @@ def canon_lang(keyword):
 ap = ArgumentParser(
         description="execute code picked from markdown by key.",
         formatter_class=ArgumentDefaultsHelpFormatter)
-#ap.add_argument("lang", help="language key. e.g. py, php, js")
-ap.add_argument("-l", action="store", dest="lang",
-                help="specify a language name.")
-ap.add_argument("-f", action="store", dest="input_file",
-                help="specify a filename containing code snipet.")
+ap.add_argument("input_file", nargs="*",
+                help="specify a filename containing code snipet. "
+                    "'-' means stdin.")
 ap.add_argument("-s", action="store", dest="script_id",
                 help="specify the script identifier, separated by comma.")
 ap.add_argument("-A", action="store_true", dest="execute_all",
@@ -63,8 +61,8 @@ opt = ap.parse_args()
 
 #
 if not (opt.execute_all or opt.script_id):
-    print("ERROR: either -s or -A is required.")
-    ap.show_help()
+    print("ERROR: either -s or -A is required to specify a snipet.")
+    ap.print_help()
     exit(0)
 
 if opt.script_id is None:
