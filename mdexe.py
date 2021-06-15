@@ -76,12 +76,12 @@ if opt.input_file:
 else:
     fd = sys.stdin
 
-f_snipet = False
+in_snipet = False
 script_id = 0
 for line in fd:
     r = re_start.match(line)
     if r:
-        f_snipet = True
+        in_snipet = True
         script_id += 1
         try:
             lang = canon_lang(r.group(1))
@@ -90,12 +90,12 @@ for line in fd:
         snipet = [] # initialize
         continue
     r = re_end.match(line)
-    if r and f_snipet is True:
-        f_snipet = False
+    if r and in_snipet is True:
+        in_snipet = False
         if len(script_id_list) == 0 or script_id in script_id_list:
             exec_cmd(lang, snipet)
         snipet = []
         continue
-    if f_snipet:
+    if in_snipet:
         snipet.append(line)
 
