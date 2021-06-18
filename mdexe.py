@@ -102,7 +102,7 @@ for line in fd:
             if len(script_id_list) == 0 or script_id in script_id_list:
                 exec_cmd(lang, snipet)
         else:
-            print(f"## SNIPET_ID {script_id}: {lang}")
+            print(f"## SNIPET_ID {script_id}: {lang}\n")
             print("".join(snipet))
         snipet = []
         continue
