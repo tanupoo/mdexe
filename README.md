@@ -59,6 +59,12 @@ print("an example executed by php.");
 console.log("an example executed by node.js.")
 ```
 
+## BUG
+
+In mac OS and python3.8 or newer,
+a snipet including multiprocessing may not work.
+if you change the start method into `fork`, it can.
+
 ## Usage
 
 ```
