@@ -5,16 +5,45 @@ It executes code in a fence block in a markdown document.
 
 ## How to use
 
-if you want to run the 3rd snipet.  You can use the option -s.
+Just type `mdexe.py README.md` like below.  `%` is a shell prompt.
 
 ```
-% mdexe.py -f README.md -s 3
+% mdexe.py README.md
+
+## SNIPET_ID 0: python
+
+print("an example executed by phthon")
+
+
+## SNIPET_ID 1: php
+
+print("an example executed by php.");
+
+
+## SNIPET_ID 2: node
+
+console.log("an example executed by node.js.")
+
+```
+
+You can see the identifier of each snipet.
+If you want to run the 3rd snipet.
+You can specify the id (zero origin) by the option -i,
+and the option -x to execute the snipet.
+
+```
+% mdexe.py README.md -i 2 -x
+
+## SNIPET_ID 2 Result: node
+
+an example executed by node.js.
+
 ```
 
 You will see the result of the 3rd snipet
 that is written in Javascript in this README.md.
 
-NOTE: don't put critical code in the markdown.  It's your own risk.
+NOTE: DON'T PUT CRITICAL CODE.  IT'S YOUR OWN RISK.
 
 ## Sample code in the markdown.
 
@@ -33,19 +62,22 @@ console.log("an example executed by node.js.")
 ## Usage
 
 ```
-% mdexe.py -h
-usage: mdexe.py [-h] [-l LANG] [-f INPUT_FILE] [-s SCRIPT_ID] [-A] [-M] [-S]
+usage: mdexe.py [-h] [-i SNIPET_IDS] [-x] [-s] [-H] [input_file]
 
 execute code picked from markdown by key.
 
+positional arguments:
+  input_file     specify a filename containing code snipet. '-' means stdin.
+                 (default: None)
+
 optional arguments:
   -h, --help     show this help message and exit
-  -l LANG        specify a language name. (default: None)
-  -f INPUT_FILE  specify a filename containing code snipet. (default: None)
-  -s SCRIPT_ID   specify the script identifier, separated by comma. (default:
-                 None)
-  -A             specify to execute all snipets. (default: False)
-  -M             show output in markdown. (default: False)
-  -S             show original script. (default: False)
+  -i SNIPET_IDS  specify the snipet IDs separated by comma, OR 'all'. It's
+                 required when the -x option is specified. (default: None)
+  -x             execute snipets specified the IDs seperated by a comma.
+                 (default: False)
+  -s             specify to show the snipets even when the -x option is
+                 specified. (default: False)
+  -H             with this option, disable to show each header.
 ```
 

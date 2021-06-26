@@ -8,7 +8,7 @@ from argparse import ArgumentParser
 from argparse import ArgumentDefaultsHelpFormatter
 
 re_start = re.compile("^```\s*([\w\d]+)(,\s*_lib)?")
-re_end = re.compile("^```")
+re_quote = re.compile("^```")
 
 class ReadMarkdown:
 
@@ -18,45 +18,46 @@ class ReadMarkdown:
         else:
             fd = sys.stdin
         #
-        self.snipets = [] # {"lang":"code"}
-        self.libs = []   # {"lang":"code"}
-        in_snipet = False
+        self.quotes = { "snipet": [], "lib": [], "other": [] } # {"lang":"code"}
+        quote_type = None # "snipet", "lib", "other"
+        #
+        in_quote = False
         lang = None
-        is_lib = False
         for line in fd:
-            # find a start of a snipet.
-            r = re_start.match(line)
+            r = re_quote.match(line)
             if r:
-                if in_snipet is False:
-                    in_snipet = True
-                    lang = self._canon_lang(r.group(1))
-                    if r.group(2):
-                        is_lib = True
-                    snipet = [] # initialize
-                    continue
-                else:
-                    raise ValueError(
-                            "ERROR: failed parsing quotaing mark to open")
-            # find a end of a snipet.
-            r = re_end.match(line)
-            if r:
-                if in_snipet is True:
-                    if is_lib:
-                        x = self.libs
+                if not in_quote:
+                    # found a start of a quote.
+                    text = [] # initialize
+                    in_quote = True
+                    r = re_start.match(line)
+                    if r:
+                        if quote_type is None:
+                            lang = self._canon_lang(r.group(1))
+                            if r.group(2):
+                                quote_type = "lib"
+                            else:
+                                quote_type = "snipet"
+                        else:
+                            raise ValueError(
+                                    "ERROR: quote mark mismatch to open.")
                     else:
-                        x = self.snipets
-                    x.append({"lang":lang, "snipet":"".join(snipet)})
-                    in_snipet = False
-                    lang = None
-                    is_lib = False
-                    snipet = []
-                    continue
+                        quote_type = "other"
                 else:
-                    raise ValueError(
-                            "ERROR: failed parsing quotaing mark to close")
-            # in snipet quote.
-            if in_snipet is True:
-                snipet.append(line)
+                    # found a end of a quote.
+                    in_quote = False
+                    if quote_type in ["snipet", "lib", "other"]:
+                        self.quotes[quote_type].append({"lang":lang,
+                                                "snipet":"".join(text)})
+                        quote_type = None
+                        lang = None
+                        text = []
+                    else:
+                        raise ValueError(
+                                "ERROR: quote mark mismatch to close.")
+            # in quote.
+            elif quote_type is not None:
+                text.append(line)
 
     def _canon_cmd(self, lang, cmd):
         if lang == "php":
@@ -64,11 +65,15 @@ class ReadMarkdown:
                 cmd.insert(0, "<?php\n")
         return cmd
 
+    def get_lib(self):
+        return "".join([x["snipet"] for x in self.quotes["lib"]
+                        if x["lang"] == lang]
+                       + ["\n"])
+
     def _exec_cmd(self, id, lang, snipet, show_header=False):
         if show_header:
-            print(f"## SNIPET_ID {id} Result: {lang}\n")
-        cmd = "".join([x["snipet"] for x in self.libs if x["lang"] == lang])
-        cmd += "".join(self._canon_cmd(lang, snipet))
+            print(f"\n## SNIPET_ID {id} Result: {lang}\n")
+        cmd = self.get_lib() + "".join(self._canon_cmd(lang, snipet))
         with Popen(shlex.split(lang),
                 stdin=PIPE, stdout=PIPE, stderr=PIPE, text=True) as proc:
             output, errs = proc.communicate(input=cmd, timeout=5)
@@ -88,38 +93,40 @@ class ReadMarkdown:
             raise ValueError(f"INFO: ignore ```{keyword}, it doesn't registered.")
 
     def exec_snipets(self, snipet_ids=None, show_header=False):
+        qlist = self.quotes["snipet"]
         if len(snipet_ids) == 0 or snipet_ids is None:
-            for i,x in enumerate(self.snipets):
+            for i,x in enumerate(qlist):
                 self._exec_cmd(i, x["lang"], x["snipet"], show_header)
         else:
             for i in snipet_ids:
-                self._exec_cmd(i, self.snipets[i]["lang"],
-                               self.snipets[i]["snipet"], show_header)
+                self._exec_cmd(i, qlist[i]["lang"],
+                               qlist[i]["snipet"], show_header)
 
     def show_snipets(self, snipet_ids=None, show_header=True):
-        #
+        qlist = self.quotes["snipet"]
         if len(snipet_ids) == 0 or snipet_ids is None:
-            for i,x in enumerate(self.snipets):
+            for i,x in enumerate(qlist):
                 self.show_libs(x["lang"], show_header)
                 self.print_snipet(i, x["lang"], x["snipet"], show_header)
         else:
             for i in snipet_ids:
-                self.show_libs(self.snipets[i]["lang"], show_header)
-                self.print_snipet(i, self.snipets[i]["lang"],
-                                  self.snipets[i]["snipet"], show_header)
+                self.show_libs(qlist[i]["lang"], show_header)
+                self.print_snipet(i, qlist[i]["lang"],
+                                  qlist[i]["snipet"], show_header)
 
     def show_libs(self, lang, show_header=True):
-        if len(self.libs) == 0:
+        qlist = self.quotes["lib"]
+        if len(qlist) == 0:
             return
         if show_header:
-            print(f"## LIBRARY: {lang}\n")
-        for i,x in enumerate(self.libs):
+            print(f"\n## LIBRARY: {lang}\n")
+        for i,x in enumerate(qlist):
             if x["lang"] == lang:
                 print(f"{x['snipet']}\n")
 
     def print_snipet(self, id, lang, snipet, show_header=True):
         if show_header:
-            print(f"## SNIPET_ID {id}: {lang}\n")
+            print(f"\n## SNIPET_ID {id}: {lang}\n")
         print(f"{snipet}")
 
 #
