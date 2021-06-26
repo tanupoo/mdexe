@@ -2,8 +2,10 @@
 
 import sys
 import re
-from subprocess import Popen, PIPE
+from subprocess import Popen, PIPE, DEVNULL
 import shlex
+import tempfile
+import os
 from argparse import ArgumentParser
 from argparse import ArgumentDefaultsHelpFormatter
 
@@ -28,7 +30,7 @@ class ReadMarkdown:
             if r:
                 if not in_quote:
                     # found a start of a quote.
-                    text = [] # initialize
+                    text_lines = [] # initialize
                     in_quote = True
                     r = re_start.match(line)
                     if r:
@@ -48,39 +50,68 @@ class ReadMarkdown:
                     in_quote = False
                     if quote_type in ["snipet", "lib", "other"]:
                         self.quotes[quote_type].append({"lang":lang,
-                                                "snipet":"".join(text)})
+                                                "snipet":text_lines})
                         quote_type = None
                         lang = None
-                        text = []
+                        text_lines = []
                     else:
                         raise ValueError(
                                 "ERROR: quote mark mismatch to close.")
             # in quote.
             elif quote_type is not None:
-                text.append(line)
+                text_lines.append(line)
 
-    def _canon_cmd(self, lang, cmd):
+    def _canon_cmd(self, lang, text_lines):
         if lang == "php":
             if "<?php" not in cmd[0]:
-                cmd.insert(0, "<?php\n")
-        return cmd
+                text_lines.insert(0, "<?php\n")
+        return "".join(text_lines)
 
     def get_lib(self):
         return "".join([x["snipet"] for x in self.quotes["lib"]
                         if x["lang"] == lang]
                        + ["\n"])
 
-    def _exec_cmd(self, id, lang, snipet, show_header=False):
+    def _exec_cmd(self, id, lang, text_lines,
+                  exec_file=False, show_header=False):
         if show_header:
             print(f"\n## SNIPET_ID {id} Result: {lang}\n")
-        cmd = self.get_lib() + "".join(self._canon_cmd(lang, snipet))
+        cmd = self.get_lib() + self._canon_cmd(lang, text_lines)
+        if exec_file:
+            self._exec_tempfile(lang, cmd)
+        else:
+            self._exec_pipeline(lang, cmd)
+
+    def _exec_tempfile(self, lang, cmd):
+        with tempfile.NamedTemporaryFile("w") as tmp:
+            tmp.write(cmd)
+            tmp.flush()
+            with Popen(shlex.split(f"{lang} {tmp.name}"),
+                    stdin=DEVNULL, stdout=PIPE, stderr=PIPE,
+                       text=True) as proc:
+                while True:
+                    output = proc.stdout.readline()
+                    print(output, end="", flush=True)
+                    if len(output) == 0:
+                        break
+                    errs = proc.stderr.read()
+                    if errs:
+                        print(errs)
+
+    def _exec_pipeline(self, lang, cmd):
         with Popen(shlex.split(lang),
-                stdin=PIPE, stdout=PIPE, stderr=PIPE, text=True) as proc:
-            output, errs = proc.communicate(input=cmd, timeout=5)
-        if errs:
-            print(errs)
-        if output:
-            print(output)
+                stdin=PIPE, stdout=PIPE, stderr=PIPE,
+                   text=True) as proc:
+            proc.stdin.write(cmd)
+            proc.stdin.close()
+            while True:
+                output = proc.stdout.readline()
+                print(output, end="", flush=True)
+                if len(output) == 0:
+                    break
+                errs = proc.stderr.read()
+                if errs:
+                    print(errs)
 
     def _canon_lang(self, keyword):
         if keyword in ["node", "js", "javascript"]:
@@ -92,15 +123,19 @@ class ReadMarkdown:
         else:
             raise ValueError(f"INFO: ignore ```{keyword}, it doesn't registered.")
 
-    def exec_snipets(self, snipet_ids=None, show_header=False):
+    def exec_snipets(self, snipet_ids=None, exec_file=False, unbuffered=True,
+                     show_header=False):
+        if unbuffered:
+            os.environ["PYTHONUNBUFFERED"] = "YES"
         qlist = self.quotes["snipet"]
         if len(snipet_ids) == 0 or snipet_ids is None:
             for i,x in enumerate(qlist):
-                self._exec_cmd(i, x["lang"], x["snipet"], show_header)
+                self._exec_cmd(i, x["lang"], x["snipet"],
+                               exec_file, show_header)
         else:
             for i in snipet_ids:
-                self._exec_cmd(i, qlist[i]["lang"],
-                               qlist[i]["snipet"], show_header)
+                self._exec_cmd(i, qlist[i]["lang"], qlist[i]["snipet"],
+                               exec_file, show_header)
 
     def show_snipets(self, snipet_ids=None, show_header=True):
         qlist = self.quotes["snipet"]
@@ -122,12 +157,12 @@ class ReadMarkdown:
             print(f"\n## LIBRARY: {lang}\n")
         for i,x in enumerate(qlist):
             if x["lang"] == lang:
-                print(f"{x['snipet']}\n")
+                print(f"{''.join(x['snipet'])}\n")
 
-    def print_snipet(self, id, lang, snipet, show_header=True):
+    def print_snipet(self, id, lang, text_lines, show_header=True):
         if show_header:
             print(f"\n## SNIPET_ID {id}: {lang}\n")
-        print(f"{snipet}")
+        print(f"{''.join(text_lines)}")
 
 #
 # main
@@ -143,11 +178,16 @@ ap.add_argument("-i", action="store", dest="snipet_ids",
                     "It's required when the -x option is specified.")
 ap.add_argument("-x", action="store_true", dest="exec_snipets",
                 help="execute snipets specified the IDs seperated by a comma.")
+ap.add_argument("-u", action="store_true", dest="unbuffered",
+                help="specify unbuffered mode.")
 ap.add_argument("-s", action="store_true", dest="show_snipets",
                 help="specify to show the snipets "
                     "even when the -x option is specified.")
 ap.add_argument("-H", action="store_false", dest="show_header",
                 help="with this option, disable to show each header.")
+ap.add_argument("-z", action="store_true", dest="exec_file",
+                help="specify to execute the snipet "
+                    "after a file containing the snipet is created.")
 opt = ap.parse_args()
 
 #
@@ -171,4 +211,6 @@ md = ReadMarkdown(opt.input_file)
 if (not opt.exec_snipets) or opt.show_snipets:
     md.show_snipets(snipet_ids, show_header=opt.show_header)
 if opt.exec_snipets:
-    md.exec_snipets(snipet_ids, show_header=opt.show_header)
+    md.exec_snipets(snipet_ids, exec_file=opt.exec_file,
+                    unbuffered=opt.unbuffered,
+                    show_header=opt.show_header)
