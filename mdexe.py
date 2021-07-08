@@ -92,11 +92,11 @@ class ReadMarkdown:
                 while True:
                     output = proc.stdout.readline()
                     print(output, end="", flush=True)
-                    if len(output) == 0:
-                        break
                     errs = proc.stderr.read()
                     if errs:
                         print(errs)
+                    if len(output) == 0:
+                        break
 
     def _exec_pipeline(self, lang, cmd):
         with Popen(shlex.split(lang),
@@ -107,11 +107,11 @@ class ReadMarkdown:
             while True:
                 output = proc.stdout.readline()
                 print(output, end="", flush=True)
-                if len(output) == 0:
-                    break
                 errs = proc.stderr.read()
                 if errs:
                     print(errs)
+                if len(output) == 0:
+                    break
 
     def _canon_lang(self, keyword):
         if keyword in ["node", "js", "javascript"]:
