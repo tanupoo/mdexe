@@ -67,8 +67,8 @@ class ReadMarkdown:
                 text_lines.insert(0, "<?php\n")
         return "".join(text_lines)
 
-    def get_lib(self):
-        return "".join([x["snipet"] for x in self.quotes["lib"]
+    def get_lib(self, lang):
+        return "".join(["".join(x["snipet"]) for x in self.quotes["lib"]
                         if x["lang"] == lang]
                        + ["\n"])
 
@@ -76,7 +76,7 @@ class ReadMarkdown:
                   exec_file=False, show_header=False):
         if show_header:
             print(f"\n## SNIPET_ID {id} Result: {lang}\n")
-        cmd = self.get_lib() + self._canon_cmd(lang, text_lines)
+        cmd = self.get_lib(lang) + self._canon_cmd(lang, text_lines)
         if exec_file:
             self._exec_tempfile(lang, cmd)
         else:
