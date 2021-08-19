@@ -68,9 +68,13 @@ class ReadMarkdown:
         return "".join(text_lines)
 
     def get_lib(self, lang):
-        return "".join(["".join(x["snipet"]) for x in self.quotes["lib"]
-                        if x["lang"] == lang]
-                       + ["\n"])
+        m = "".join(["".join(x["snipet"]) for x in self.quotes["lib"]
+                        if x["lang"] == lang])
+        if len(m) > 0:
+            #return m + "\n"
+            return m # XXX
+        else:
+            return m
 
     def _exec_cmd(self, id, lang, text_lines,
                   exec_file=False, show_header=False):
@@ -137,32 +141,53 @@ class ReadMarkdown:
                 self._exec_cmd(i, qlist[i]["lang"], qlist[i]["snipet"],
                                exec_file, show_header)
 
-    def show_snipets(self, snipet_ids=None, show_header=True):
+    def show_snipets(self, snipet_ids=None, show_header=True, show_lineno=True):
         qlist = self.quotes["snipet"]
         if len(snipet_ids) == 0 or snipet_ids is None:
             for i,x in enumerate(qlist):
-                self.show_libs(x["lang"], show_header)
-                self.print_snipet(i, x["lang"], x["snipet"], show_header)
+                opts = {
+                    "lang": x["lang"],
+                    "show_header": show_header,
+                    "show_lineno": show_lineno,
+                    "lineno": 0,
+                    }
+                self.show_libs(opts)
+                self.print_snipet(i, x["snipet"], opts)
         else:
             for i in snipet_ids:
-                self.show_libs(qlist[i]["lang"], show_header)
-                self.print_snipet(i, qlist[i]["lang"],
-                                  qlist[i]["snipet"], show_header)
+                opts = {
+                    "lang": qlist[i]["lang"],
+                    "show_header": show_header,
+                    "show_lineno": show_lineno,
+                    "lineno": 0,
+                    }
+                self.show_libs(opts)
+                self.print_snipet(i, qlist[i]["snipet"], opts)
 
-    def show_libs(self, lang, show_header=True):
+    def show_libs(self, opts):
         qlist = self.quotes["lib"]
         if len(qlist) == 0:
             return
-        if show_header:
-            print(f"\n## LIBRARY: {lang}\n")
+        if opts["show_header"]:
+            print(f"\n## LIBRARY: {opts['lang']}\n")
         for i,x in enumerate(qlist):
-            if x["lang"] == lang:
-                print(f"{''.join(x['snipet'])}\n")
+            if x["lang"] == opts["lang"]:
+                if opts["show_lineno"]:
+                    for line in x["snipet"]:
+                        opts["lineno"] += 1
+                        print(f"{opts['lineno']:02}: {line}")
+                else:
+                    print(f"{''.join(x['snipet'])}\n")
 
-    def print_snipet(self, id, lang, text_lines, show_header=True):
-        if show_header:
-            print(f"\n## SNIPET_ID {id}: {lang}\n")
-        print(f"{''.join(text_lines)}")
+    def print_snipet(self, id, text_lines, opts):
+        if opts["show_header"]:
+            print(f"\n## SNIPET_ID {id}: {opts['lang']}\n")
+        if opts["show_lineno"]:
+            for line in text_lines:
+                opts["lineno"] += 1
+                print(f"{opts['lineno']:02}: {line}", end="")
+        else:
+            print(f"{''.join(text_lines)}")
 
 #
 # main
@@ -183,6 +208,8 @@ ap.add_argument("-u", action="store_true", dest="unbuffered",
 ap.add_argument("-s", action="store_true", dest="show_snipets",
                 help="specify to show the snipets "
                     "even when the -x option is specified.")
+ap.add_argument("-N", action="store_false", dest="show_lineno",
+                help="disable to show the line number of the snipet.")
 ap.add_argument("-H", action="store_false", dest="show_header",
                 help="with this option, disable to show each header.")
 ap.add_argument("-z", action="store_true", dest="exec_file",
@@ -209,7 +236,8 @@ else:
 
 md = ReadMarkdown(opt.input_file)
 if (not opt.exec_snipets) or opt.show_snipets:
-    md.show_snipets(snipet_ids, show_header=opt.show_header)
+    md.show_snipets(snipet_ids, show_header=opt.show_header,
+                    show_lineno=opt.show_lineno)
 if opt.exec_snipets:
     md.exec_snipets(snipet_ids, exec_file=opt.exec_file,
                     unbuffered=opt.unbuffered,
