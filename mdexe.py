@@ -163,6 +163,7 @@ class ReadMarkdown:
                     }
                 self.show_libs(opts)
                 self.print_snipet(i, qlist[i]["snipet"], opts)
+        sys.stdout.flush()
 
     def show_libs(self, opts):
         qlist = self.quotes["lib"]
@@ -205,9 +206,8 @@ ap.add_argument("-x", action="store_true", dest="exec_snipets",
                 help="execute snipets specified the IDs seperated by a comma.")
 ap.add_argument("-u", action="store_true", dest="unbuffered",
                 help="specify unbuffered mode.")
-ap.add_argument("-s", action="store_true", dest="show_snipets",
-                help="specify to show the snipets "
-                    "even when the -x option is specified.")
+ap.add_argument("-S", action="store_false", dest="show_snipets",
+                help="disable to show the snipet ")
 ap.add_argument("-N", action="store_false", dest="show_lineno",
                 help="disable to show the line number of the snipet.")
 ap.add_argument("-H", action="store_false", dest="show_header",
@@ -235,7 +235,7 @@ else:
         snipet_ids = []
 
 md = ReadMarkdown(opt.input_file)
-if (not opt.exec_snipets) or opt.show_snipets:
+if opt.show_snipets:
     md.show_snipets(snipet_ids, show_header=opt.show_header,
                     show_lineno=opt.show_lineno)
 if opt.exec_snipets:
