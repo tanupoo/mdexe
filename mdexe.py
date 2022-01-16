@@ -122,8 +122,12 @@ class ReadMarkdown:
             return "node"
         elif keyword in ["sh", "bash", "zsh"]:
             return keyword
-        elif keyword in ["python", "php"]:
+        elif keyword in ["php"]:
             return keyword
+        elif keyword.startswith("python"):
+            return keyword
+        elif keyword in ["py"]:
+            return "python"
         else:
             raise ValueError(f"INFO: ignore ```{keyword}, it doesn't registered.")
 
@@ -213,8 +217,8 @@ ap.add_argument("-N", action="store_false", dest="show_lineno",
 ap.add_argument("-H", action="store_false", dest="show_header",
                 help="with this option, disable to show each header.")
 ap.add_argument("-z", action="store_true", dest="exec_file",
-                help="specify to execute the snipet "
-                    "after a file containing the snipet is created.")
+                help="specify to execute the file "
+                    "after it sets the snipet into the one.")
 opt = ap.parse_args()
 
 #
