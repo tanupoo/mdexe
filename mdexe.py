@@ -78,6 +78,9 @@ class ReadMarkdown:
 
     def _exec_cmd(self, id, lang, text_lines,
                   exec_file=False, show_header=False):
+        if not lang:
+            print("ERROR: lang is not defined.")
+            return
         if show_header:
             print(f"\n## SNIPET_ID {id} Result: {lang}\n")
         cmd = self.get_lib(lang) + self._canon_cmd(lang, text_lines)
@@ -129,7 +132,8 @@ class ReadMarkdown:
         elif keyword in ["py"]:
             return "python"
         else:
-            raise ValueError(f"INFO: ignore ```{keyword}, it doesn't registered.")
+            print(f"INFO: ignore ```{keyword}, it doesn't registered.")
+            return None
 
     def exec_snipets(self, snipet_ids=None, exec_file=False, unbuffered=True,
                      show_header=False):
