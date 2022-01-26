@@ -5,6 +5,7 @@ import re
 from subprocess import Popen, PIPE, DEVNULL
 import shlex
 import tempfile
+import pty
 import os
 from argparse import ArgumentParser
 from argparse import ArgumentDefaultsHelpFormatter
@@ -90,20 +91,14 @@ class ReadMarkdown:
             self._exec_pipeline(lang, cmd)
 
     def _exec_tempfile(self, lang, cmd):
+        def reader(fd):
+            data = os.read(fd, 1024)
+            #print(data.decode(), end="", flush=True)
+            return data
         with tempfile.NamedTemporaryFile("w") as tmp:
             tmp.write(cmd)
             tmp.flush()
-            with Popen(shlex.split(f"{lang} {tmp.name}"),
-                    stdin=DEVNULL, stdout=PIPE, stderr=PIPE,
-                       text=True) as proc:
-                while True:
-                    output = proc.stdout.readline()
-                    print(output, end="", flush=True)
-                    errs = proc.stderr.read()
-                    if errs:
-                        print(errs)
-                    if len(output) == 0:
-                        break
+            pty.spawn(shlex.split(f"{lang} {tmp.name}"), reader)
 
     def _exec_pipeline(self, lang, cmd):
         with Popen(shlex.split(lang),
