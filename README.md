@@ -59,6 +59,23 @@ print("an example executed by php.");
 console.log("an example executed by node.js.")
 ```
 
+## Library
+
+```python, inc:one,two
+sample_one()
+sample_two()
+```
+
+```python,name:one
+def sample_one():
+    print("one")
+```
+
+```python,name:two
+def sample_two():
+    print("two")
+```
+
 ## BUG
 
 In mac OS and python3.8 or newer,
