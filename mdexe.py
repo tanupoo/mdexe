@@ -119,7 +119,7 @@ class ReadMarkdown:
         else:
             self._exec_pipeline(lang, code)
 
-    def _exec_tempfile(self, lang, code):
+    def _exec_tempfile(self, lang, cmd):
         def reader(fd):
             data = os.read(fd, 1024)
             #print(data.decode(), end="", flush=True)
