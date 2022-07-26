@@ -82,25 +82,4 @@ In mac OS and python3.8 or newer,
 a snipet including multiprocessing may not work.
 if you change the start method into `fork`, it can.
 
-## Usage
-
-```
-usage: mdexe.py [-h] [-i SNIPET_IDS] [-x] [-s] [-H] [input_file]
-
-execute code picked from markdown by key.
-
-positional arguments:
-  input_file     specify a filename containing code snipet. '-' means stdin.
-                 (default: None)
-
-optional arguments:
-  -h, --help     show this help message and exit
-  -i SNIPET_IDS  specify the snipet IDs separated by comma, OR 'all'. It's
-                 required when the -x option is specified. (default: None)
-  -x             execute snipets specified the IDs seperated by a comma.
-                 (default: False)
-  -s             specify to show the snipets even when the -x option is
-                 specified. (default: False)
-  -H             with this option, disable to show each header.
-```
-
+print(flush=True) may not work.
