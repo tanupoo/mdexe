@@ -10,12 +10,8 @@ import os
 from argparse import ArgumentParser
 from argparse import ArgumentDefaultsHelpFormatter
 
-# <lang_name>
-#
-# <lang_name>,inc:<name1>[,<name2>[,...]]
-#
-# <lang_name>,name:<name1>
-re_start = re.compile("^```\s*([\w\d]+)(\s*,\s*(\S.*))?")
+re_start = re.compile("^```\s*([\w\d]+)")
+re_ext = re.compile("^#%(.*)")
 re_quote = re.compile("^```")
 
 class ReadMarkdown:
@@ -60,25 +56,10 @@ class ReadMarkdown:
                     r = re_start.match(line)
                     if r:
                         if quote_type is None:
+                            quote_type = "snipet" # may be changed later.
                             lang = self._canon_lang(r.group(1))
-                            # if r.group(3) exists, assumes it's a library.
-                            # and r.group(3) is a name for this one.
-                            if r.group(3) is None:
-                                quote_type = "snipet"
-                                name = None
-                                includes = []
-                            else:
-                                if r.group(3).startswith("inc:"):
-                                    quote_type = "snipet"
-                                    name = None
-                                    includes = r.group(3).replace("inc:","").split(",")
-                                elif r.group(3).startswith("name:"):
-                                    quote_type = "lib"
-                                    name = r.group(3).replace("name:","")
-                                    includes = []
-                                else:
-                                    raise ValueError("ERROR: "
-                                                     "inc or name must be used.")
+                            name = None
+                            includes = []
                         else:
                             raise ValueError("ERROR: "
                                              "quote mark mismatch to open.")
@@ -104,9 +85,24 @@ class ReadMarkdown:
                                 "ERROR: quote mark mismatch to close.")
             # in quote.
             elif quote_type is not None:
-                text_lines.append(line)
-        import json
-        #print("xxx", json.dumps(self.quotes, indent=4))
+                r = re_ext.match(line)
+                if r:
+                    if r.group(1).startswith("inc:"):
+                        quote_type = "snipet"
+                        name = None
+                        includes.extend(r.group(1).replace("inc:","").split(","))
+                    elif r.group(1).startswith("name:"):
+                        quote_type = "lib"
+                        name = r.group(1).replace("name:","")
+                        includes = []
+                    else:
+                        raise ValueError("ERROR: inc or name must be used. "
+                                         f"but {r.group(1)}")
+                else:
+                    text_lines.append(line)
+        if opt.debug:
+            import json
+            print(json.dumps(self.quotes, indent=4))
 
     def _exec_cmd(self, lang, code_lines, exec_file=False):
         if lang == "php":
@@ -165,15 +161,10 @@ class ReadMarkdown:
         for n in snipet["inc"]:
             for m in self.quotes["lib"]:
                 if m["lang"] == snipet["lang"] and m["name"] == n:
-                    if len(code_lines) > 0:
-                        code_lines.append("\n")
                     code_lines.extend(m["snipet"])
                     break
             else:
-                print(f"WARNING: name={n} doesn't exist.")
-                continue
-        if len(code_lines) > 0:
-            code_lines.append("\n")
+                raise ValueError(f"ERROR: name={n} is not defined.")
         code_lines.extend(snipet["snipet"])
         return code_lines
 
@@ -239,6 +230,8 @@ ap.add_argument("-H", action="store_false", dest="show_header",
 ap.add_argument("-z", action="store_true", dest="exec_file",
                 help="specify to execute the file "
                     "after it sets the snipet into the one.")
+ap.add_argument("-d", action="store_true", dest="debug",
+                help="enable debug mode.")
 opt = ap.parse_args()
 
 #
