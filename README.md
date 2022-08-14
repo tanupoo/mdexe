@@ -88,10 +88,9 @@ def sample_two():
 
 That's going to be:
 
-```python
+```
 def sample_one():
     print("one")
-
 def sample_two():
     print("two")
 sample_one()
