@@ -5,7 +5,7 @@ It executes code in a fence block in a markdown document.
 
 ## How to use
 
-Just type `mdexe.py README.md` like below.  `%` is a shell prompt.
+Just type `mdexe.py README.md` like below.  `%` denotes a shell prompt.
 
 ```
 % mdexe.py README.md
@@ -59,21 +59,43 @@ print("an example executed by php.");
 console.log("an example executed by node.js.")
 ```
 
-## Library
+## How to define a Common part.
 
-```python, inc:one,two
+`#%name` at the first line can be used to define the name of the code block.
+You can inject the block into the header of another block to define `#%inc` at the first line.
+
+See below.
+
+````
+```python
+#%inc:one,two
 sample_one()
 sample_two()
 ```
 
-```python,name:one
+```python
+#%name:one
 def sample_one():
     print("one")
 ```
 
-```python,name:two
+```python
+#%name:two
 def sample_two():
     print("two")
+```
+````
+
+That's going to be:
+
+```python
+def sample_one():
+    print("one")
+
+def sample_two():
+    print("two")
+sample_one()
+sample_two()
 ```
 
 ## BUG
