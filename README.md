@@ -1,7 +1,7 @@
 mdexe
 =====
 
-It executes code in a fence block in a markdown document.
+It executes code written in a fence block in a markdown document.
 
 ## How to use
 
