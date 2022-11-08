@@ -13,13 +13,14 @@ from pydantic import BaseModel
 from typing import List, Optional, Literal
 
 re_start = re.compile("^```\s*([\w\d]+)")
-re_ext_1 = re.compile("^#%(name:(.*)|lib)")
+re_ext_1 = re.compile("^#%(name:(.*)|lib(.*))")
 re_ext_inc = re.compile("^#%inc:(.*)")
 re_quote = re.compile("^```")
 
 class Snipet(BaseModel):
     lang: str
     name: Optional[str] = None
+    name2: Optional[str] = None
     lib: bool = False
     text: List[str] = []
     working: Literal[0, 1, 2] = 0
@@ -71,6 +72,8 @@ class ReadMarkdown:
                         snipet.name = r.group(2).strip()
                     elif r.group(1).startswith("lib"):
                         snipet.lib = True
+                        if r.group(3) and r.group(3).startswith(":"):
+                            snipet.name2 = r.group(3)[1:].strip()
                 else:
                     snipet.text.append(line)
         #
@@ -83,7 +86,8 @@ class ReadMarkdown:
         # phase 2
         def get_snipet(name: str) -> Snipet:
             for s in self.quotes:
-                if s.name == name:
+                if ((s.name and s.name == name) or
+                    (s.name2 and s.name2 == name)):
                     return format_snipet(s)
             else:
                 return None
