@@ -239,7 +239,7 @@ ap.add_argument("input_file", nargs="?",
                     "'-' means stdin.")
 ap.add_argument("-i", action="store", dest="snipet_ids",
                 help="specify the snipet IDs separated by comma, OR 'all'. "
-                    "It's required when the -x option is specified.")
+                    "It takes the first snipet if the -i option is omitted AND the -x option is specified.")
 ap.add_argument("-x", action="store_true", dest="exec_snipets",
                 help="execute snipets specified the IDs seperated by a comma.")
 ap.add_argument("-u", action="store_true", dest="unbuffered",
@@ -260,6 +260,7 @@ ap.add_argument("-d", action="store_true", dest="debug",
                 help="enable debug mode.")
 opt = ap.parse_args()
 
+md = ReadMarkdown(opt.input_file)
 #
 if opt.snipet_ids and "0" in opt.snipet_ids:
     print("ERROR: snipet ID must not be zero.")
@@ -270,8 +271,7 @@ if opt.exec_snipets:
     elif opt.snipet_ids is not None:
         snipet_ids = opt.snipet_ids.split(",")
     else:
-        print("ERROR: Required the -i option if the -x option is specified.")
-        exit(-1)
+        snipet_ids = ["1"]
 else:
     if opt.snipet_ids == "all":
         snipet_ids = []
@@ -280,7 +280,6 @@ else:
     else:
         snipet_ids = []
 
-md = ReadMarkdown(opt.input_file)
 if opt.show_snipets:
     if opt.exec_snipets:
         show_libs = False
