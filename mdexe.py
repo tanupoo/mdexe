@@ -203,7 +203,7 @@ class ReadMarkdown:
         if show_header:
             print("\n"
                   f"## {tag}: ID:{snipet.id} LANG:{snipet.lang} "
-                  "NAME:{snipet.name}\n")
+                  f"NAME:{snipet.name}\n")
 
     def exec_snipets(self, snipet_ids, exec_file=False, unbuffered=True,
                      show_header=False):
