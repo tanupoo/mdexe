@@ -9,10 +9,21 @@ import pty
 import os
 from argparse import ArgumentParser
 from argparse import ArgumentDefaultsHelpFormatter
+from pydantic import BaseModel
+from typing import List, Optional, Literal
 
 re_start = re.compile("^```\s*([\w\d]+)")
-re_ext = re.compile("^#%(.*)")
+re_ext_1 = re.compile("^#%(name:(.*)|lib)")
+re_ext_inc = re.compile("^#%inc:(.*)")
 re_quote = re.compile("^```")
+
+class Snipet(BaseModel):
+    lang: str
+    name: Optional[str] = None
+    lib: bool = False
+    text: List[str] = []
+    working: Literal[0, 1, 2] = 0
+    id: str = 0
 
 class ReadMarkdown:
 
@@ -21,88 +32,97 @@ class ReadMarkdown:
             fd = open(input_file)
         else:
             fd = sys.stdin
-        #
+
         """
-        self.quotes:
-            {
-                "snipet": {
-                    "lang": ...,
-                    "name": None,
-                    "inc": [...], # include lib(s) labeled by the name.
-                    "snipet": ...,
-                },
-                "lib": {
-                    "lang": ...,
-                    "name": ...,
-                    "inc": [],  # doesn't include any others.
-                    "snipet": ...,
-                },
-                "other": { ... }
-            }
+        self.snipets:
+            List[Snipet]
         """
-        self.quotes = { "snipet": [], "lib": [], "other": [] } # {"lang":"code"}
+        self.quotes = []
+
+        # phase1: read the snipets anyway
         in_quote = False
-        quote_type = None
-        lang = None
-        text_lines = []
-        name = None
-        includes = []
+        snipet_id = 1
+        # take only text in the mean snipets.
         for line in fd:
             r = re_quote.match(line)
             if r:
-                if not in_quote:
-                    # found a start of a quote.
-                    in_quote = True
+                # means the end of snipet, OR other quote.
+                if in_quote:
+                    # found the end of a snipet.
+                    in_quote = False
+                    if not snipet.lib:
+                        # assign id if not a lib.
+                        snipet.id = str(snipet_id)
+                        snipet_id += 1
+                    self.quotes.append(snipet)
+                else:
+                    # not in quote.
                     r = re_start.match(line)
                     if r:
-                        if quote_type is None:
-                            quote_type = "snipet" # may be changed later.
-                            lang = self._canon_lang(r.group(1))
-                            name = None
-                            includes = []
-                        else:
-                            raise ValueError("ERROR: "
-                                             "quote mark mismatch to open.")
-                    else:
-                        quote_type = "other"
-                        name = "__xxx"
-                        includes = []
-                else:
-                    # found a end of a quote.
-                    in_quote = False
-                    if quote_type in ["snipet", "lib", "other"]:
-                        self.quotes[quote_type].append({"lang":lang,
-                                                        "name": name,
-                                                        "inc": includes,
-                                                        "snipet":text_lines})
-                        quote_type = None
-                        lang = None
-                        text_lines = []
-                        name = None
-                        includes = []
-                    else:
-                        raise ValueError(
-                                "ERROR: quote mark mismatch to close.")
-            # in quote.
-            elif quote_type is not None:
-                r = re_ext.match(line)
+                        # found a start of a snipet.
+                        in_quote = True
+                        snipet = Snipet.parse_obj({
+                                "lang": self._canon_lang(r.group(1))})
+            elif in_quote:
+                # in quote.
+                r = re_ext_1.match(line)
                 if r:
-                    if r.group(1).startswith("inc:"):
-                        quote_type = "snipet"
-                        name = None
-                        includes.extend(r.group(1).replace("inc:","").split(","))
-                    elif r.group(1).startswith("name:"):
-                        quote_type = "lib"
-                        name = r.group(1).replace("name:","")
-                        includes = []
-                    else:
-                        raise ValueError("ERROR: inc or name must be used. "
-                                         f"but {r.group(1)}")
+                    if r.group(1).startswith("name:"):
+                        snipet.name = r.group(2).strip()
+                    elif r.group(1).startswith("lib"):
+                        snipet.lib = True
                 else:
-                    text_lines.append(line)
+                    snipet.text.append(line)
+        #
         if opt.debug:
             import json
-            print(json.dumps(self.quotes, indent=4))
+            print("## phase1")
+            for x in self.quotes:
+                print(json.dumps(x.dict(), indent=4))
+
+        # phase 2
+        def get_snipet(name: str) -> Snipet:
+            for s in self.quotes:
+                if s.name == name:
+                    return format_snipet(s)
+            else:
+                return None
+
+        def format_snipet(snipet: Snipet) -> List[str]:
+            if snipet.working == 2:
+                return snipet.text
+            elif snipet.working == 1:
+                raise ValueError(f"{snipet.name} was read recursively.")
+            # if snipet.working == 0
+            snipet.working = 1
+            #
+            new_text = []
+            for t in snipet.text:
+                r = re_ext_inc.match(t)
+                if r:
+                    for i,n in enumerate(r.group(1).split(",")):
+                        if i:
+                            new_text.append("\n")
+                        name = n.strip()
+                        inc = get_snipet(name)
+                        if inc:
+                            new_text.extend(inc)
+                        else:
+                            raise ValueError(f"{name} doesn't exist.")
+                else:
+                    new_text.append(t)
+            snipet.working = 2
+            snipet.text = new_text
+            return snipet.text
+
+        for i,s in enumerate(self.quotes):
+            format_snipet(s)
+        #
+        if opt.debug:
+            import json
+            print("## phase2")
+            for x in self.quotes:
+                print(json.dumps(x.dict(), indent=4))
 
     def _exec_cmd(self, lang, code_lines, exec_file=False):
         if lang == "php":
@@ -168,38 +188,44 @@ class ReadMarkdown:
         code_lines.extend(snipet["snipet"])
         return code_lines
 
+    def get_snipet_by_id(self, id: int) -> Snipet:
+        for s in self.quotes:
+            if s.id == id:
+                return s
+        else:
+            return None
+
+    def print_header(self, tag, snipet, show_header):
+        if show_header:
+            print("\n"
+                  f"## {tag}: ID:{snipet.id} LANG:{snipet.lang} "
+                  "NAME:{snipet.name}\n")
+
     def exec_snipets(self, snipet_ids, exec_file=False, unbuffered=True,
                      show_header=False):
         if unbuffered:
             os.environ["PYTHONUNBUFFERED"] = "YES"
         if len(snipet_ids) == 0:
-            snipet_ids = range(len(self.quotes["snipet"]))
+            snipet_ids = [s.id for s in self.quotes if s.id != 0]
         for i in snipet_ids:
-            code_lines = self.make_code_lines(i)
-            snipet = self.quotes["snipet"][i]
-            lang = snipet["lang"]
-            if show_header:
-                print(f"\n## SNIPET_ID {i}: {lang}\n")
-            self._exec_cmd(lang, code_lines, exec_file)
+            s = self.get_snipet_by_id(i)
+            self.print_header("RESULT", s, show_header)
+            self._exec_cmd(s.lang, s.text, exec_file)
 
     def show_snipets(self, snipet_ids, show_header=True, show_lineno=True,
                      show_libs=False):
         if len(snipet_ids) == 0:
-            snipet_ids = range(len(self.quotes["snipet"]))
+            snipet_ids = [s.id for s in self.quotes if s.id != 0]
         for i in snipet_ids:
-            code_lines = self.make_code_lines(i)
-            snipet = self.quotes["snipet"][i]
-            lang = snipet["lang"]
+            s = self.get_snipet_by_id(i)
             lineno = 0
-            if show_header:
-                print(f"\n## SNIPET_ID {i}: {lang}\n")
+            self.print_header("SNIPET", s, show_header)
             if show_lineno:
-                for line in code_lines:
+                for line in s.text:
                     lineno += 1
                     print(f"{lineno:02}: {line}", end="")
             else:
-                print(f"{''.join(code_lines)}")
-        #
+                print(f"{''.join(s.text)}")
         sys.stdout.flush()
 
 #
@@ -235,11 +261,14 @@ ap.add_argument("-d", action="store_true", dest="debug",
 opt = ap.parse_args()
 
 #
+if opt.snipet_ids and "0" in opt.snipet_ids:
+    print("ERROR: snipet ID must not be zero.")
+    exit(-1)
 if opt.exec_snipets:
     if opt.snipet_ids == "all":
         snipet_ids = []
     elif opt.snipet_ids is not None:
-        snipet_ids = [int(i) for i in opt.snipet_ids.split(",")]
+        snipet_ids = opt.snipet_ids.split(",")
     else:
         print("ERROR: Required the -i option if the -x option is specified.")
         exit(-1)
@@ -247,7 +276,7 @@ else:
     if opt.snipet_ids == "all":
         snipet_ids = []
     elif opt.snipet_ids is not None:
-        snipet_ids = [int(i) for i in opt.snipet_ids.split(",")]
+        snipet_ids = opt.snipet_ids.split(",")
     else:
         snipet_ids = []
 
