@@ -128,18 +128,18 @@ class ReadMarkdown:
             for x in self.quotes:
                 print(json.dumps(x.dict(), indent=4))
 
-    def _exec_cmd(self, lang, code_lines, exec_file=False):
+    def _exec_cmd(self, lang, code_lines, envkeys, exec_file=False):
         if lang == "php":
             if "<?php" not in code_lines[0]:
                 # XXX should be find()
                 code_lines.insert(0, "<?php\n")
         code = "".join(code_lines)
         if exec_file:
-            self._exec_tempfile(lang, code)
+            self._exec_tempfile(lang, code, envkeys)
         else:
-            self._exec_pipeline(lang, code)
+            self._exec_pipeline(lang, code, envkeys)
 
-    def _exec_tempfile(self, lang, cmd):
+    def _exec_tempfile(self, lang, cmd, envkeys):
         def reader(fd):
             data = os.read(fd, 1024)
             #print(data.decode(), end="", flush=True)
@@ -149,10 +149,10 @@ class ReadMarkdown:
             tmp.flush()
             pty.spawn(shlex.split(f"{lang} {tmp.name}"), reader)
 
-    def _exec_pipeline(self, lang, cmd):
+    def _exec_pipeline(self, lang, cmd, envkeys):
         with Popen(shlex.split(lang),
                 stdin=PIPE, stdout=PIPE, stderr=PIPE,
-                   text=True) as proc:
+                   text=True, env=envkeys) as proc:
             proc.stdin.write(cmd)
             proc.stdin.close()
             while True:
@@ -205,8 +205,8 @@ class ReadMarkdown:
                   f"## {tag}: ID:{snipet.id} LANG:{snipet.lang} "
                   f"NAME:{snipet.name}\n")
 
-    def exec_snipets(self, snipet_ids, exec_file=False, unbuffered=True,
-                     show_header=False):
+    def exec_snipets(self, snipet_ids, exec_file=False, envkeys=None,
+                     unbuffered=True, show_header=False):
         if unbuffered:
             os.environ["PYTHONUNBUFFERED"] = "YES"
         if len(snipet_ids) == 0:
@@ -214,7 +214,7 @@ class ReadMarkdown:
         for i in snipet_ids:
             s = self.get_snipet_by_id(i)
             self.print_header("RESULT", s, show_header)
-            self._exec_cmd(s.lang, s.text, exec_file)
+            self._exec_cmd(s.lang, s.text, envkeys, exec_file)
 
     def show_snipets(self, snipet_ids, show_header=True, show_lineno=True,
                      show_libs=False):
@@ -246,6 +246,11 @@ ap.add_argument("-i", action="store", dest="snipet_ids",
                     "It takes the first snipet if the -i option is omitted AND the -x option is specified.")
 ap.add_argument("-x", action="store_true", dest="exec_snipets",
                 help="execute snipets specified the IDs seperated by a comma.")
+ap.add_argument("-e", action="append", dest="_envkeys",
+                help="specify KEY=VAL as an environment variable "
+                "so that you can embed KEY into your document "
+                "to execute with the VAL. "
+                "It allows to be used multiple times.")
 ap.add_argument("-u", action="store_true", dest="unbuffered",
                 help="specify unbuffered mode.")
 ap.add_argument("-w", action="store_true", dest="toggle_show_libs",
@@ -263,6 +268,14 @@ ap.add_argument("-z", action="store_true", dest="exec_file",
 ap.add_argument("-d", action="store_true", dest="debug",
                 help="enable debug mode.")
 opt = ap.parse_args()
+
+opt.envkeys = None
+if opt._envkeys:
+    opt.envkeys = {}
+    for ek in opt._envkeys:
+        if "=" not in ek:
+            raise ValueError(f"ERROR: {ek} doesn't look key=val")
+        opt.envkeys.update([(ek.split("="))])
 
 md = ReadMarkdown(opt.input_file)
 #
@@ -295,5 +308,6 @@ if opt.show_snipets:
                     show_libs=show_libs)
 if opt.exec_snipets:
     md.exec_snipets(snipet_ids, exec_file=opt.exec_file,
+                    envkeys=opt.envkeys,
                     unbuffered=opt.unbuffered,
                     show_header=opt.show_header)
