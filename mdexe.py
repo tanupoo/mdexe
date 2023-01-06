@@ -35,7 +35,7 @@ class ReadMarkdown:
             fd = sys.stdin
 
         """
-        self.snipets:
+        self.quotes:
             List[Snipet]
         """
         self.quotes = []
