@@ -1,7 +1,7 @@
 mdexe
 =====
 
-It executes code written in a fence block in a markdown document.
+It can execute a code written in a fence block in a markdown document.
 
 ## How to use
 
@@ -61,16 +61,20 @@ console.log("an example executed by node.js.")
 
 ## How to define a Common part.
 
-`#%name` at the first line can be used to define the name of the code block.
-You can inject the block into the header of another block to define `#%inc` anywhere.
-If you don't want to include a code block to be excuted, you can put `#%lib` into the code block.
+`#%name` can be used to define the name of the snipet.
+You can inject the snipet into another snipet where `#%inc` is defined.
+If you don't want to include a snipet to be listed, you can put `#%lib` into the snipet.
 
 See below.
 
 ````
 ```python
-#%inc:one,two
+#%inc:one
+
 sample_one()
+
+#%inc:two
+
 sample_two()
 ```
 
@@ -93,13 +97,16 @@ That's going to be:
 ```
 def sample_one():
     print("one")
+
+sample_one()
+
 def sample_two():
     print("two")
-sample_one()
+
 sample_two()
 ```
 
-The block named **two** doens't include in the list of the code blocks.
+Note that the snipet named **two** doens't include in the list of the snipets.
 
 ## BUG
 
