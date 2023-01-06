@@ -62,7 +62,8 @@ console.log("an example executed by node.js.")
 ## How to define a Common part.
 
 `#%name` at the first line can be used to define the name of the code block.
-You can inject the block into the header of another block to define `#%inc` at the first line.
+You can inject the block into the header of another block to define `#%inc` anywhere.
+If you don't want to include a code block to be excuted, you can put `#%lib` into the code block.
 
 See below.
 
@@ -81,6 +82,7 @@ def sample_one():
 
 ```python
 #%name:two
+#%lib
 def sample_two():
     print("two")
 ```
@@ -96,6 +98,8 @@ def sample_two():
 sample_one()
 sample_two()
 ```
+
+The block named **two** doens't include in the list of the code blocks.
 
 ## BUG
 
