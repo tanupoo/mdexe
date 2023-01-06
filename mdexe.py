@@ -232,6 +232,12 @@ class ReadMarkdown:
                 print(f"{''.join(s.text)}")
         sys.stdout.flush()
 
+    def get_snipet_ids(self, include_lib=False):
+        if include_lib:
+            return [s.id for s in self.quotes]
+        else:
+            return [s.id for s in self.quotes if not s.lib]
+
 #
 # main
 #
@@ -296,6 +302,11 @@ else:
         snipet_ids = opt.snipet_ids.split(",")
     else:
         snipet_ids = []
+if len(snipet_ids) > 0:
+    for i in snipet_ids:
+        if i not in md.get_snipet_ids():
+            print(f"ERROR: snipet ID {i} doesn't exist.")
+            exit(-1)
 
 if opt.show_snipets:
     if opt.exec_snipets:
