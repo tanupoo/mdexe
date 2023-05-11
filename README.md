@@ -3,63 +3,106 @@ mdexe
 
 It can execute a code written in a fence block in a markdown document.
 
+NOTE: not recommend to put critical code in the snipet block.
+
 ## How to use
 
-Just type `mdexe.py README.md` like below.  `%` denotes a shell prompt.
-
 ```
-% mdexe.py README.md
-
-## SNIPET_ID 0: python
-
-print("an example executed by phthon")
-
-
-## SNIPET_ID 1: php
-
-print("an example executed by php.");
-
-
-## SNIPET_ID 2: node
-
-console.log("an example executed by node.js.")
-
+git clone https://github.com/tanupoo/mdexe
+cd mdexe
 ```
 
-You can see the identifier of each snipet.
-If you want to run the 3rd snipet.
-You can specify the id (zero origin) by the option -i,
-and the option -x to execute the snipet.
+Then, just type `mdexe.py README.md`.
+You can see the snipets and the identifier of each snipet like below.
+`%` denotes a shell prompt.
 
 ```
-% mdexe.py README.md -i 2 -x
+## SNIPET: ID:1 LANG:python NAME:None
 
-## SNIPET_ID 2 Result: node
+01: print("an example of Phthon")
 
-an example executed by node.js.
+## SNIPET: ID:2 LANG:node NAME:None
 
+01: console.log("an example of Node.js.")
+
+## SNIPET: ID:3 LANG:perl NAME:None
+
+01: print "an example of Perl.\n"
+
+## SNIPET: ID:4 LANG:sh NAME:None
+
+01: echo "an example of shell."
+
+## SNIPET: ID:5 LANG:php NAME:None
+
+01: print("an example of PHP.");
+
+## SNIPET: ID:6 LANG:python NAME:None
+
+01: def sample_one():
+02:     print("one")
+03:
+04: sample_one()
+05:
+06: def sample_two():
+07:     print("two")
+08:
+09: sample_two()
+
+## SNIPET: ID:7 LANG:python NAME:one
+
+01: def sample_one():
+02:     print("one")
+```
+
+You can specify the id by the -i option, and execute it with the -x option.
+For example, if you want to run the 1st one, which is witten by Python.
+
+```
+% mdexe.py README.md -i 1 -x
+
+## SNIPET: ID:1 LANG:python NAME:None
+
+01: print("an example of Phthon")
+
+## RESULT: ID:1 LANG:python NAME:None
+
+an example of Phthon
 ```
 
 You will see the result of the 3rd snipet
 that is written in Javascript in this README.md.
 
-NOTE: DON'T PUT CRITICAL CODE.  IT'S YOUR OWN RISK.
+Please be sure that python has been installed in this case.
+If you see the error like below, maybe python is not included in your PATH.
+
+```
+FileNotFoundError: [Errno 2] No such file or directory: 'python'
+```
 
 ## Sample code in the markdown.
 
 ```python
-print("an example executed by phthon")
-```
-
-```php
-print("an example executed by php.");
+print("an example of Phthon")
 ```
 
 ```js
-console.log("an example executed by node.js.")
+console.log("an example of Node.js.")
 ```
 
-## How to define a Common part.
+```perl
+print "an example of Perl.\n"
+```
+
+```sh
+echo "an example of shell."
+```
+
+```php
+print("an example of PHP.");
+```
+
+## Tweaks.
 
 `#%name` can be used to define the name of the snipet.
 You can inject the snipet into another snipet where `#%inc` is defined.
