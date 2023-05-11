@@ -11,10 +11,10 @@ from io import StringIO
 from pydantic import BaseModel
 from typing import List, Optional, Literal
 
-re_start = re.compile("^```\s*([\w\d]+)")
+re_quote = re.compile("^(```+)")
+re_start = re.compile("^(```+)\s*([\w\d]+)")
 re_ext_1 = re.compile("^#%(name:(.*)|lib(.*))")
 re_ext_inc = re.compile("^#%inc:(.*)")
-re_quote = re.compile("^```")
 
 class Snipet(BaseModel):
     lang: str
@@ -64,7 +64,7 @@ class ReadMarkdown:
                         # found a start of a snipet.
                         in_quote = True
                         snipet = Snipet.parse_obj({
-                                "lang": self._canon_lang(r.group(1))})
+                                "lang": self._canon_lang(r.group(2))})
             elif in_quote:
                 # in quote.
                 r = re_ext_1.match(line)
