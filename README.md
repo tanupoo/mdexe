@@ -12,9 +12,9 @@ git clone https://github.com/tanupoo/mdexe
 cd mdexe
 ```
 
-Then, just type `mdexe.py README.md`.
+Then, just type `mdexe.py README.md` in the directory you cloned.
+It means that mdexe.py will parse the README.md file you are reading.
 You can see the snipets and the identifier of each snipet like below.
-`%` denotes a shell prompt.
 
 ```
 ## SNIPET: ID:1 LANG:python NAME:None
