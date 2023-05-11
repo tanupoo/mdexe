@@ -171,6 +171,8 @@ class ReadMarkdown:
             return keyword
         elif keyword in ["php"]:
             return keyword
+        elif keyword in ["perl"]:
+            return keyword
         elif keyword.startswith("python"):
             return keyword
         elif keyword in ["py"]:
