@@ -132,11 +132,19 @@ class ReadMarkdown:
     def _exec_cmd(self, lang, code_lines, envkeys, exec_file=False):
         if lang == "php":
             if "<?php" not in code_lines[0]:
-                # XXX should be find()
+                # XXX should be improved to find "<?php"
                 code_lines.insert(0, "<?php\n")
         elif "awk" in lang:
-            # overwrite
+            """
+            in the awk mode.
+            - force exec_file mode.
+            - add the -f option.
+            - enclose "BEGIN {" and "}".
+            """
+            exec_file = True
             lang = f"{lang} -f"
+            code_lines.insert(0, "BEGIN {\n")
+            code_lines.append("\n}")
         code = "".join(code_lines)
         if exec_file:
             self._exec_tempfile(lang, code, envkeys)
