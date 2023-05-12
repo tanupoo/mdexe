@@ -42,31 +42,51 @@ class ReadMarkdown:
         self.quotes = []
 
         # phase1: read the snipets anyway
-        in_quote = False
+        # 0: out of fence.
+        # 1: quote.
+        # 2: snipet.
+        quote_type = 0
+        quote_size = 0
         snipet_id = 1
         # take only text in the mean snipets.
         for line in fd:
             r = re_quote.match(line)
             if r:
                 # means the end of snipet, OR other quote.
-                if in_quote:
-                    # found the end of a snipet.
-                    in_quote = False
-                    if not snipet.lib:
-                        # assign id if not a lib.
-                        snipet.id = str(snipet_id)
-                        snipet_id += 1
-                    self.quotes.append(snipet)
+                current_quote_size = len(r.group(1))
+                if quote_type == 1:
+                    if quote_size == current_quote_size: 
+                        # end of a fence.
+                        quote_type = 0
+                    else:
+                        # ignore it as it's something text in a fence.
+                        pass
+                elif quote_type == 2:
+                    if quote_size == current_quote_size:
+                        # found the end of a snipet.
+                        quote_type = 0
+                        if not snipet.lib:
+                            # assign id if not a lib.
+                            snipet.id = str(snipet_id)
+                            snipet_id += 1
+                        self.quotes.append(snipet)
+                    else:
+                        # it's a part of the snipet.
+                        snipet.text.append(line)
                 else:
-                    # not in quote.
+                    # start of a fence block.
+                    quote_size = current_quote_size
                     r = re_start.match(line)
                     if r:
                         # found a start of a snipet.
-                        in_quote = True
+                        quote_type = 2
                         snipet = Snipet.parse_obj({
                                 "lang": self._canon_lang(r.group(2))})
-            elif in_quote:
-                # in quote.
+                    else:
+                        quote_type = 1
+                        # just a fence.
+            elif quote_type == 2:
+                # in a snipet.
                 r = re_ext_1.match(line)
                 if r:
                     if r.group(1).startswith("name:"):
