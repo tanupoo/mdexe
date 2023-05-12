@@ -134,6 +134,9 @@ class ReadMarkdown:
             if "<?php" not in code_lines[0]:
                 # XXX should be find()
                 code_lines.insert(0, "<?php\n")
+        elif "awk" in lang:
+            # overwrite
+            lang = f"{lang} -f"
         code = "".join(code_lines)
         if exec_file:
             self._exec_tempfile(lang, code, envkeys)
@@ -173,6 +176,8 @@ class ReadMarkdown:
         elif keyword in ["php"]:
             return keyword
         elif keyword in ["perl"]:
+            return keyword
+        elif keyword in ["awk", "gawk", "nawk"]:
             return keyword
         elif keyword.startswith("python"):
             return keyword
