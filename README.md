@@ -98,9 +98,33 @@ print "an example of Perl.\n"
 echo "an example of shell."
 ```
 
+```awk
+print "an example of awk BEGIN section."
+```
+
 ```php
 print("an example of PHP.");
 ```
+
+## Exceptions
+
+In the case of the anipet of awk,
+the code is executed as the one written in the BEGIN section.
+If you want to put full awk snipet
+such as containing the END section or the patter matching,
+you can put it as the shell snipet.
+
+````
+```sh
+echo "Hello awk." | awk '
+{ print toupper($0); }
+END {
+    print strftime("%M:%S", systime())
+    print "--- mdexe"
+}
+'
+```
+````
 
 ## Tweaks.
 
