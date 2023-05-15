@@ -108,7 +108,7 @@ print("an example of PHP.");
 
 ## Exceptions
 
-In the case of the anipet of awk,
+In the case of the snipet of awk,
 the code is executed as the one written in the BEGIN section.
 If you want to put full awk snipet
 such as containing the END section or the patter matching,
